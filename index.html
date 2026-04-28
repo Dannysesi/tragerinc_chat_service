@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TragerInc Energy Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #f9fafb);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-container {
+      width: 420px;
+      height: 600px;
+      background: #ffffff;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 16px;
+      background: #0f766e;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .chat-subtitle {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: #f8fafc;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .user-message {
+      background: #2563eb;
+      color: white;
+      padding: 10px 12px;
+      border-radius: 12px 12px 0 12px;
+      max-width: 85%;
+      margin-left: auto;
+    }
+
+    .bot-message {
+      background: white;
+      color: #111827;
+      padding: 12px;
+      border-radius: 12px 12px 12px 0;
+      max-width: 90%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .bot-message h3 {
+      margin: 8px 0 4px;
+      font-size: 14px;
+    }
+
+    .bot-message ul {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+
+    .bot-message strong {
+      color: #0f766e;
+    }
+
+    .chat-form {
+      padding: 12px;
+      border-top: 1px solid #e5e7eb;
+      background: white;
+    }
+
+    .chat-form input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+
+    .chat-form button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #0f766e;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chat-form button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 6px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="chat-header">
+    TragerInc Energy Assistant
+    <div class="chat-subtitle">Personalised usage & billing insights</div>
+  </div>
+
+  <div class="chat-messages" id="messages"></div>
+
+  <form class="chat-form" onsubmit="sendMessage(event)">
+    <input
+      id="customerId"
+      placeholder="Enter your Customer ID"
+      required
+    />
+    <input
+      id="userInput"
+      placeholder="Ask about your bill, usage, or savings..."
+      required
+    />
+    <button id="sendBtn" type="submit">Send</button>
+    <div id="loading" class="loading" style="display:none;">
+      Analyzing your energy data…
+    </div>
+  </form>
+</div>
+
+<script>
+function formatBotResponse(text) {
+  // Basic markdown-style formatting
+  return text
+    .replace(/### (.*)/g, "<h3>$1</h3>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\* (.*)/g, "<ul><li>$1</li></ul>")
+    .replace(/---/g, "<hr/>");
+}
+
+async function sendMessage(event) {
+  event.preventDefault();
+
+  const customerId = document.getElementById("customerId").value.trim();
+  const message = document.getElementById("userInput").value.trim();
+  const messagesDiv = document.getElementById("messages");
+  const sendBtn = document.getElementById("sendBtn");
+  const loading = document.getElementById("loading");
+
+  if (!customerId || !message) return;
+
+  // User message
+  messagesDiv.innerHTML += `
+    <div class="message user-message">
+      ${message}
+    </div>
+  `;
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  sendBtn.disabled = true;
+  loading.style.display = "block";
+
+  try {
+    const response = await fetch("http://localhost:8001/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer_id: customerId,
+        message: message
+      })
+    });
+
+    const data = await response.json();
+
+    messagesDiv.innerHTML += `
+      <div class="message bot-message">
+        ${formatBotResponse(data.response)}
+      </div>
+    `;
+  } catch (error) {
+    messagesDiv.innerHTML += `
+      <div class="message bot-message">
+        <strong>Error:</strong> Unable to reach the assistant. Please try again.
+      </div>
+    `;
+  }
+
+  loading.style.display = "none";
+  sendBtn.disabled = false;
+  document.getElementById("userInput").value = "";
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+</script>
+
+</body>
+</html>
