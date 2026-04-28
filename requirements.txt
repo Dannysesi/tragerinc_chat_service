@@ -2,5 +2,5 @@ uvicorn[standard]
 fastapi
 pandas
 pydantic
-hugginface_hub
+huggingface_hub
 python-decople
