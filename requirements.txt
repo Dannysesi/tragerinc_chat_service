@@ -4,3 +4,4 @@ pandas
 pydantic
 huggingface_hub
 python-decouple
+requests
